@@ -1,6 +1,6 @@
 function readArea () {
     huskylens.request()
-    if (huskylens.isAppear(3, HUSKYLENSResultType_t.HUSKYLENSResultBlock)) {
+    if (huskylens.readeBox(3, Content1.yCenter) > 30) {
         floor_id = 3
     } else if (huskylens.readeBox(1, Content1.width) > 160) {
         floor_id = 1
@@ -11,28 +11,28 @@ function readArea () {
     }
 }
 function catchBall () {
-    iBIT.Motor(ibitMotor.Forward, 25)
-    basic.pause(500)
-    iBIT.Servo(ibitServo.SV2, 90)
-    iBIT.MotorStop()
-    basic.pause(500)
-    iBIT.Motor(ibitMotor.Backward, 30)
-    basic.pause(1000)
+    iBIT.Turn(ibitTurn.Left, 40)
+    basic.pause(200)
+    iBIT.Servo(ibitServo.SV2, 80)
+    basic.pause(200)
     iBIT.MotorStop()
     compass_heading = input.compassHeading()
 }
+/**
+ * mistake?
+ */
 function rotateTo (angle: number) {
     compass_heading = input.compassHeading()
-    if (Math.abs(compass_heading - angle) < 180) {
+    if (angle - compass_heading < 0) {
         rotateTo_direction = 0
     } else {
         rotateTo_direction = 1
     }
-    while (compass_heading > angle + 30 || compass_heading < angle - 30) {
+    while (compass_heading > angle + 15 || compass_heading < angle - 15) {
         if (rotateTo_direction == 0) {
-            iBIT.Spin(ibitSpin.Right, 40)
+            iBIT.Spin(ibitSpin.Left, 30)
         } else {
-            iBIT.Spin(ibitSpin.Left, 40)
+            iBIT.Spin(ibitSpin.Right, 30)
         }
         basic.pause(100)
         iBIT.MotorStop()
@@ -50,8 +50,7 @@ function moveByArea () {
         } else if (floor_id == 3) {
             iBIT.Motor(ibitMotor.Backward, 30)
             basic.pause(500)
-            iBIT.Spin(ibitSpin.Left, 50)
-            basic.pause(200)
+            rotateTo(compass_heading + 90)
         }
     } else {
         if (!(huskylens.isAppear_s(HUSKYLENSResultType_t.HUSKYLENSResultBlock))) {
@@ -80,25 +79,21 @@ function moveByArea () {
             iBIT.Turn(ibitTurn.Right, 40)
             basic.pause(300)
         }
-        if (huskylens.isAppear_s(HUSKYLENSResultType_t.HUSKYLENSResultBlock)) {
-            iBIT.Motor(ibitMotor.Forward, 20)
-        } else {
-            iBIT.Motor(ibitMotor.Forward, 30)
-        }
+        iBIT.Motor(ibitMotor.Forward, 20)
     }
 }
 function initializeState (toState: number) {
     if (toState == 0) {
-        iBIT.Servo(ibitServo.SV1, 0)
-        iBIT.Servo(ibitServo.SV2, 0)
+        iBIT.Servo(ibitServo.SV1, 5)
+        iBIT.Servo(ibitServo.SV2, 80)
         ball_id = 0
     } else if (toState == 1) {
         compass_heading = input.compassHeading()
         compass_stored = compass_heading
         catchBall()
     } else {
-        iBIT.Servo(ibitServo.SV1, 0)
-        iBIT.Servo(ibitServo.SV2, 90)
+        iBIT.Servo(ibitServo.SV1, 5)
+        iBIT.Servo(ibitServo.SV2, 80)
         basic.showString("P")
     }
     state = toState
@@ -119,16 +114,21 @@ input.onButtonPressed(Button.A, function () {
     initializeState(2)
 })
 function turnTowardsBall () {
+    iBIT.MotorStop()
     getBallCOORD()
-    if (ball_y > 120 && ball_x < 195) {
+    if (ball_y > 70 && ball_x < 75) {
+        initializeState(1)
+    } else if (ball_y > 100 && ball_x < 140) {
         initializeState(1)
     } else {
-        while (ball_x > 160 || ball_x < 130) {
-            if (ball_x > 160) {
-                iBIT.Spin(ibitSpin.Left, 25)
+        while (ball_x > 120 || ball_x < 90) {
+            if (ball_x > 120) {
+                iBIT.Spin(ibitSpin.Left, 50)
             } else {
-                iBIT.Spin(ibitSpin.Right, 25)
+                iBIT.Spin(ibitSpin.Right, 50)
             }
+            basic.pause(100)
+            iBIT.MotorStop()
             getBallCOORD()
             compass_heading = input.compassHeading()
             if (!(huskylens.isAppear(ball_id, HUSKYLENSResultType_t.HUSKYLENSResultBlock))) {
@@ -141,13 +141,14 @@ function turnTowardsBall () {
 function throwDaBall () {
     basic.showIcon(IconNames.Skull)
     iBIT.Servo(ibitServo.SV2, 0)
-    iBIT.Motor(ibitMotor.Forward, 50)
+    iBIT.Motor(ibitMotor.Backward, 30)
     basic.pause(300)
-    iBIT.Servo(ibitServo.SV1, 120)
+    iBIT.Motor(ibitMotor.Forward, 100)
+    iBIT.Servo(ibitServo.SV1, 90)
     basic.pause(200)
     iBIT.MotorStop()
+    iBIT.Servo(ibitServo.SV1, 5)
     basic.pause(200)
-    iBIT.Servo(ibitServo.SV1, 0)
     iBIT.Motor(ibitMotor.Backward, 50)
     basic.pause(500)
     iBIT.MotorStop()
@@ -159,6 +160,7 @@ function getBallCOORD () {
     huskylens.writeOSD("x:" + ball_x + " y:" + ball_y, ball_x, ball_y)
 }
 input.onButtonPressed(Button.AB, function () {
+    input.calibrateCompass()
     iBIT.Servo(ibitServo.SV2, 0)
 })
 input.onButtonPressed(Button.B, function () {
@@ -166,13 +168,15 @@ input.onButtonPressed(Button.B, function () {
 })
 function readBall () {
     huskylens.request()
-    if (huskylens.readBox_s(Content3.yCenter) > 30 && (huskylens.readBox_s(Content3.width) < 80 && huskylens.readBox_s(Content3.height) < 80)) {
+    if (huskylens.readBox_s(Content3.yCenter) > 0 && (huskylens.readBox_s(Content3.width) < 80 && huskylens.readBox_s(Content3.height) < 80)) {
         ball_id = huskylens.readBox_s(Content3.ID)
         if (ball_id == 1 || ball_id == 2) {
+            iBIT.Servo(ibitServo.SV2, 0)
             turnTowardsBall()
         }
     } else {
         ball_id = 0
+        iBIT.Servo(ibitServo.SV2, 80)
     }
 }
 let ball_x = 0
